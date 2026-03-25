@@ -33,6 +33,7 @@ import socket
 import time
 from DefocusCalcFunctions import autofocus
 import os
+from datetime import datetime
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 af = autofocus()
 HOST = "localhost"
@@ -48,6 +49,8 @@ conn, addr = s.accept()
 print("Socket Listening", addr)
 
 
+
+
 def getZposition(i):
     if (i < 41):
         i = i+1
@@ -55,16 +58,19 @@ def getZposition(i):
         i = -40
     time.sleep(0.1)    
     return i
-        
+
 def socketListener():
     st = -40
     back_st = 0
     boole =True
     last_t = time_ns = time.monotonic_ns()
     diff = 0
+    metrics_timestamp=[]
     while(boole):
         data = conn.recv(1024)
         msg = data.decode(encoding='UTF-8')
+        #print("1")
+        #print('msg0',msg)
         if ( msg == "call"+"\r\n"):
             st = af.main()
             while (diff<200000000):
@@ -74,42 +80,72 @@ def socketListener():
             diff = 0
             stt = str(st[0])+","+str(st[1])+","+str(st[2])+"\r\n"
             byt = stt.encode()
-            conn.send(byt)
-            print(str(st))
+            conn.send(byt) #sendin to java
+            print('str(st)', datetime.now().strftime("%H:%M:%S.%f"),str(st))
+            #print('zpos?',)
+            metrics_timestamp.append([str(st),datetime.now().strftime("%H:%M:%S.%f")])
+            #zlist_data = conn.recv(1024).decode(encoding='UTF-8')
+        
+             #   print('zlist_data:',zlist_data)
+            #else: pass 
+            
         elif (msg == "background_call" +"\r\n"):
+            print("msg", msg)
             back_st += 1
             af.set_background(False)
             stt = str(back_st)+"\r\n"
             byt = stt.encode()
             conn.send(byt)
         elif (msg == "background_first_call" +"\r\n"):
+            print("msg", msg)
             back_st += 1
             af.set_background(True)
             stt = str(back_st)+"\r\n"
             byt = stt.encode()
             conn.send(byt)
+        elif (msg == "background_aboveF_call"+"\r\n"):
+            print("msg", msg)
+            print("above f....")
+            back_st += 1.
+            af.set_background_aboveF()
+            stt = str(back_st)+"\r\n"
+            byt = stt.encode()
+            conn.send(byt)
+            
         elif (msg == "noise_background_call" +"\r\n"):
+            print("msg", msg)
             back_st += 1
             af.set_noise_background()
             stt = str(back_st)+"\r\n"
             byt = stt.encode()
             conn.send(byt)
+        elif (msg == "infocus_call" +"\r\n"):
+            print("msg", msg)
+            back_st += 1
+            af.BGC_set_infocus_image()
+            stt = str(back_st)+"\r\n"
+            byt = stt.encode()
+            conn.send(byt)
         elif ( msg == "deinit"+"\r\n"):
+            #print("msg", msg)
             st = getZposition(st)
             stt = str(st)+"\r\n"
             byt = stt.encode()
             conn.send(byt)
             boole == False
             break
-
-
-            
         else:
             st = getZposition(st)
             stt = str(st)+"\r\n"
             byt = stt.encode()
             conn.send(byt)
             print("Message sent and not identified: " + str(st))
+            #print("Message sent and not identified, zpos: " + str(st))
+        file_timestamp=datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        with open(f"S:/2025/AF_METRICS_.txt", "w") as f:
+            for timestamp, metrics in metrics_timestamp:
+               
+                f.write(f"{timestamp},{metrics}\n")
             
 socketListener()
 s.close()
@@ -127,7 +163,7 @@ if(False):
             st = st1+st2
             byt = st.encode()
             conn.send(byt)
-            print("Message sent form Python")
+            print("Message sent from Python")
         else:
             
             print("Go away")
