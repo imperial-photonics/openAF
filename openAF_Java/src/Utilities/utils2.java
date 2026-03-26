@@ -1,35 +1,18 @@
+//Copyright 2026 Imperial College London
+//Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+//1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+//
+//2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+//
+//THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+ /**
+ *
+ * @author SK-UK
+ *
+ */
+
 package Utilities;
-
-/*
- *Copyright 2023 Imperial College London
- *Redistribution and use in source and binary forms, with or without
- *modification, are permitted provided that the following conditions are met:
- *
- *1. Redistributions of source code must retain the above copyright notice, this
- *list of conditions and the following disclaimer.
- *2. Redistributions in binary form must reproduce the above copyright notice, this 
- *list of conditions and the following disclaimer in the documentation and/or
- *other materials provided with the distribution.
- *
- *THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
- *CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES,
- *INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF 
- *MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- *DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR 
- *CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- *SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT 
- *NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
- *LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
- *CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- *STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- *ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
- *ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-
-/**
- *
- * @author Sunil Kumar
- */
 
 import java.awt.Component;
 import java.io.File;
@@ -42,7 +25,6 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
 public class utils2 {
-    //Utility names and functions for various openScopes plugins
     //OHCA2 defaults
     boolean test;
     public static final String TIME_SEQ = "Time step";
@@ -87,16 +69,18 @@ public class utils2 {
     
     public void generate_missing_folders(Path IJ_path){
         if(IJ_path.resolve(MAIN_FOLDER).toFile().exists()){
-
+            //Good
         } else {
             IJ_path.resolve(MAIN_FOLDER).toFile().mkdir();
+            //ADD POPUP NOTIFICATION! Make readme too?
         }
         //Once we're sure that the main is there, check if subdirs are too...
         for (String subdir : needed_folders()){
             if(IJ_path.resolve(MAIN_FOLDER).resolve(subdir).toFile().exists()){
+                //Good
             } else {
                 IJ_path.resolve(MAIN_FOLDER).resolve(subdir).toFile().mkdir();
-                //ADD POPUP NOTIFICATION?
+                //Make folder
             }            
         }
     }
@@ -174,9 +158,6 @@ public class utils2 {
         return JOptionPane.showOptionDialog((Component) parent, message, title, JOptionPane.YES_NO_OPTION,JOptionPane.WARNING_MESSAGE,null,options,options[0]);
     }
     
-    // Following function from https://deano.me/java-resize-arrays-multi-dimensional-arrays/
-    /** * Reallocates an array with a new size, and copies the contents* of the old array to the new array.* By Dean Williams - http://dean.resplace.net* @param oldArray the array to resize.* @param newSize the new array size.* @return The resized array.*/
-    /*
     public static Object resizeArray(Object oldArray, int newSize) {
         int oldSize = java.lang.reflect.Array.getLength(oldArray);
         Class elementType = oldArray.getClass().getComponentType();
@@ -187,13 +168,12 @@ public class utils2 {
         }
         return newArray;
     }
-    */
 
     public String strip_non_numeric(String stringtostrip){
         int negcheck = stringtostrip.indexOf("-");
         String strippedstring = stringtostrip.replaceAll("[^\\d.]", "");
         String nodots = strippedstring.replaceAll("[^\\d]","");
-        int firstdot = strippedstring.indexOf("."); //First decimal point will be taken
+        int firstdot = strippedstring.indexOf(".");//First decimal point will be taken
         String floatval;
         if(firstdot>=0){
             floatval = nodots.substring(0,firstdot)+"."+nodots.substring(firstdot);
@@ -273,8 +253,6 @@ public class utils2 {
     }    
     
     public String read_num_sensible(String input_value, boolean force_int, boolean pos_only, int num_dp){
-        //Basic way to get right # of decimal points, but it should at least be safe
-        //https://stackoverflow.com/questions/153724/how-to-round-a-number-to-n-decimal-places-in-java
         String retval = "0.0";
         if(strip_non_numeric(input_value).replaceAll("-", "").length()<1){//Also, just "-" would be bad...
             //Leave everything as zero...
@@ -306,7 +284,6 @@ public class utils2 {
         return read_num_sensible(input_value, force_int, pos_only, -1);
     }
     
-    //Overloading for ease of use
     public String read_num_sensible(String input_value, boolean force_int){
         return read_num_sensible(input_value, force_int, false);
     }

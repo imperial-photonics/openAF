@@ -1,35 +1,18 @@
+//Copyright 2026 Imperial College London
+//Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+//1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+//
+//2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+//
+//THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+ /**
+ *
+ * @author jpelightley
+ *
+ */
+
 package openAF.OpenAF;
-
-/*
- *Copyright 2023 Imperial College London
- *Redistribution and use in source and binary forms, with or without
- *modification, are permitted provided that the following conditions are met:
- *
- *1. Redistributions of source code must retain the above copyright notice, this
- *list of conditions and the following disclaimer.
- *2. Redistributions in binary form must reproduce the above copyright notice, this 
- *list of conditions and the following disclaimer in the documentation and/or
- *other materials provided with the distribution.
- *
- *THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
- *CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES,
- *INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF 
- *MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- *DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR 
- *CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- *SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT 
- *NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
- *LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
- *CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- *STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- *ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
- *ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-
-/**
- *
- * @author Jonathan Lightley
- */
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -42,12 +25,12 @@ import org.apache.commons.math.analysis.interpolation.LinearInterpolator;
 public class AFlogic {
     private MainAF parent_;
     ArrayList<Double> z_pos_list  = new ArrayList<Double>();
-    ArrayList<Double> fwhm_list  = new ArrayList<Double>();
+    ArrayList<Double> rad_list  = new ArrayList<Double>();
     LinearInterpolator interp= new LinearInterpolator();
-    Double fwhm_max_value;
-    int fwhm_max_idx;
-    ArrayList<Double> lower_half_fwhm_list = new ArrayList<Double>();
-    ArrayList<Double> upper_half_fwhm_list = new ArrayList<Double>();
+    Double rad_max_value;
+    int rad_max_idx;
+    ArrayList<Double> lower_half_rad_list = new ArrayList<Double>();
+    ArrayList<Double> upper_half_rad_list = new ArrayList<Double>();
     ArrayList<Double> lower_half_fine_z_list = new ArrayList<Double>();
     ArrayList<Double> upper_half_fine_z_list = new ArrayList<Double>();
     ArrayList<Double> lower_half_coarse_z_list = new ArrayList<Double>();
@@ -67,10 +50,6 @@ public class AFlogic {
     ArrayList<Double> lower_half_int_z_list = new ArrayList<Double>();
     ArrayList<Double> upper_half_int_z_list = new ArrayList<Double>();
     
-    
-    
-
-    
     public double check_z_spacing(){
         String first_z = z_pos_list.get(0).toString();
         String second_z = z_pos_list.get(1).toString();
@@ -80,13 +59,13 @@ public class AFlogic {
     
     public void read_file(String path) throws FileNotFoundException {
         z_pos_list.clear();
-        fwhm_list.clear();
+        rad_list.clear();
         Scanner sc=new Scanner(new FileReader(path));
         while (sc.hasNextLine()){
             String line = sc.nextLine();
             String[] values = line.split("\t");
             z_pos_list.add(Double.parseDouble(values[1]));
-            fwhm_list.add(Double.parseDouble(values[0]));       
+            rad_list.add(Double.parseDouble(values[0]));       
         }
     }
 
@@ -111,12 +90,10 @@ public class AFlogic {
                         intermediate_x.add(x_new);          
                         double y_new = gradient*x_new + intercept;
                         intermediate_y.add(y_new);
-
                     }
-                intermediate_x.add(next_x);
-                intermediate_y.add(next_y);
-                }
-                else{
+                    intermediate_x.add(next_x);
+                    intermediate_y.add(next_y);           
+                } else {
                     double first_xx = Double.parseDouble(x.get(i-1).toString());
                     double next_xx = Double.parseDouble(x.get(i).toString());
                     double first_yy = Double.parseDouble(y.get(i-1).toString());
@@ -132,7 +109,6 @@ public class AFlogic {
                         double y_new = gradient*x_new + intercept;
                         intermediate_y.add(y_new);
                     }
-
                     double first_xxx = Double.parseDouble(x.get(i+1).toString());
                     double next_xxx = Double.parseDouble(x.get(i+2).toString());
                     double first_yyy = Double.parseDouble(y.get(i+1).toString());
@@ -143,42 +119,65 @@ public class AFlogic {
                     double intercept2 = first_yyy - gradient2 * first_xxx;
                     double fake_first_x = next_x-(increments/100);
                     for(int k=0; k<=increments-1; k++){
-                        double x_new2  = Math.round((fake_first_x+(next_x - fake_first_x)*(1/increments)*k)* 100.0) / 100.0;
-                        intermediate_x.add(x_new2);          
-                        double y_new2 = gradient2*x_new2 + intercept2;
-                        intermediate_y.add(y_new2);                
-                    }
+                    double x_new2  = Math.round((fake_first_x+(next_x - fake_first_x)*(1/increments)*k)* 100.0) / 100.0;
+                    intermediate_x.add(x_new2);          
+                    double y_new2 = gradient2*x_new2 + intercept2;
+                    intermediate_y.add(y_new2);
                 }
             }
-
-            z_pos_list = intermediate_x;
-            fwhm_list = intermediate_y;
         }
-        else{
+        z_pos_list = intermediate_x;
+        rad_list = intermediate_y;
+        } else {
             z_pos_list = x;
-            fwhm_list = y;
-            
+            rad_list = y;
         }
     }
 
-      
-    
     public void check_lists(){
         System.out.println("Z list = " + z_pos_list);
-        System.out.println("FWHM list = " + fwhm_list);  
+        System.out.println("Radius list = " + rad_list);  
     }
     
-    public String look_up_defocus(double target_value, ArrayList<Double> list_fwhm, ArrayList<Double> z_list){
-        double closest = Double.parseDouble(list_fwhm.get(0).toString());
+    public String look_up_defocus(double target_value, ArrayList<Double> metric_value_list, ArrayList<Double> z_list, boolean interpolate){
+        double closest = Double.parseDouble(metric_value_list.get(0).toString());
         int closest_index = 0;
-
-        for(int i = 1; i<=list_fwhm.size()-1; i++){
-            if (Math.abs(closest - target_value) > Math.abs(Double.parseDouble(list_fwhm.get(i).toString()) - target_value)){
+        String current_position = "0";
+        for(int i = 1; i<=metric_value_list.size()-1; i++){
+            if (Math.abs(closest - target_value) > Math.abs(Double.parseDouble(metric_value_list.get(i).toString()) - target_value)){
                 closest_index = i;
-                closest = Double.parseDouble(list_fwhm.get(i).toString());
+                closest = Double.parseDouble(metric_value_list.get(i).toString());
             }
         }
-        String current_position = z_list.get(closest_index).toString();
+        if(interpolate){
+            Double output;
+            if(closest_index == 0 || closest_index == metric_value_list.size()-1){
+                current_position = z_list.get(closest_index).toString();
+            } else {
+                Double def_left = metric_value_list.get(closest_index-1);
+                Double best_match = metric_value_list.get(closest_index);
+                Double def_right = metric_value_list.get(closest_index+1);
+                if(Math.abs(best_match-def_left) < Math.abs(def_right-best_match)){
+                    //closer to below
+                    Double range = best_match-def_left;
+                    Double frac = (target_value-def_left)/range;
+                    Double z_left = z_list.get(closest_index-1);
+                    Double z_best = z_list.get(closest_index);
+                    Double z_range = z_best-z_left;
+                    output = z_left+(frac*z_range);
+                } else {
+                    Double range = def_right-best_match;
+                    Double frac = (target_value-best_match)/range;
+                    Double z_best = z_list.get(closest_index);
+                    Double z_right = z_list.get(closest_index+1);
+                    Double z_range = z_right-z_best;
+                    output = z_best+(frac*z_range);
+                }
+                current_position = output.toString();
+            }
+        } else {
+            current_position = z_list.get(closest_index).toString();
+        }
         return current_position;
     }
         
@@ -189,40 +188,39 @@ public class AFlogic {
             if (Math.abs(closest - current_Pos) > Math.abs(Double.parseDouble(z_list.get(i).toString()) - current_Pos)){
                 closest_index = i;
                 closest = Double.parseDouble(z_list.get(i).toString());
+            }           
+        }
+        return closest_index;
+
+}
+
+    public int look_up_closest_index(double target_value, ArrayList<Double> list_rad, ArrayList<Double> z_list){
+        double closest = Double.parseDouble(list_rad.get(0).toString());
+        int closest_index = 0;      
+        for(int i = 1; i<=list_rad.size()-1; i++){
+            if (Math.abs(closest - target_value) > Math.abs(Double.parseDouble(list_rad.get(i).toString()) - target_value)){
+                closest_index = i;
+                closest = Double.parseDouble(list_rad.get(i).toString());
             }
         }
         return closest_index;
     }
 
-    public int look_up_closest_index(double target_value, ArrayList<Double> list_fwhm, ArrayList<Double> z_list){
-        double closest = Double.parseDouble(list_fwhm.get(0).toString());
-        int closest_index = 0;
-        
-        for(int i = 1; i<=list_fwhm.size()-1; i++){
-            if (Math.abs(closest - target_value) > Math.abs(Double.parseDouble(list_fwhm.get(i).toString()) - target_value)){
-                closest_index = i;
-                closest = Double.parseDouble(list_fwhm.get(i).toString());
-            } 
-        }
-        return closest_index;
-    }
-
     void split_file() {
-        fwhm_max_value = Collections.max(fwhm_list);
-        fwhm_max_idx = fwhm_list.indexOf(fwhm_max_value);
-        lower_half_fwhm_list = new ArrayList<Double>(fwhm_list.subList(0, fwhm_max_idx));
-        upper_half_fwhm_list = new ArrayList<Double>(fwhm_list.subList(fwhm_max_idx, fwhm_list.size()));
-        lower_half_fine_z_list = new ArrayList<Double>(z_pos_list.subList(0, fwhm_max_idx));
-        upper_half_fine_z_list = new ArrayList<Double>(z_pos_list.subList(fwhm_max_idx, fwhm_list.size()));
-        if(Collections.min(lower_half_fwhm_list)>Collections.min(upper_half_fwhm_list)){
-            parent_.FWHM_threshold = Collections.min(lower_half_fwhm_list)+0.1*(Collections.max(lower_half_fwhm_list)-Collections.min(lower_half_fwhm_list));
-        }
-        else{
-            parent_.FWHM_threshold = Collections.min(upper_half_fwhm_list)+0.1*(Collections.max(upper_half_fwhm_list)-Collections.min(upper_half_fwhm_list));
+            rad_max_value = Collections.max(rad_list);
+            rad_max_idx = rad_list.indexOf(rad_max_value);
+            lower_half_rad_list = new ArrayList<Double>(rad_list.subList(0, rad_max_idx));
+            upper_half_rad_list = new ArrayList<Double>(rad_list.subList(rad_max_idx, rad_list.size()));
+            lower_half_fine_z_list = new ArrayList<Double>(z_pos_list.subList(0, rad_max_idx));
+            upper_half_fine_z_list = new ArrayList<Double>(z_pos_list.subList(rad_max_idx, rad_list.size()));
+        if(Collections.min(lower_half_rad_list)>Collections.min(upper_half_rad_list)){
+            parent_.Rad_threshold = Collections.min(lower_half_rad_list)+0.1*(Collections.max(lower_half_rad_list)-Collections.min(lower_half_rad_list));
+        } else{
+            parent_.Rad_threshold = Collections.min(upper_half_rad_list)+0.1*(Collections.max(upper_half_rad_list)-Collections.min(upper_half_rad_list));
         }
     }
     
-    void split_file_Proj(ArrayList<Double> proj_list, ArrayList<Double> proj_list2, ArrayList<Double> z_list,  ArrayList<Double> Intensity_list, double intThresh) {
+    void split_file_Proj(ArrayList<Double> proj_list, ArrayList<Double> proj_list2, ArrayList<Double> z_list,  ArrayList<Double> Intensity_list, double intThresh){
         int_max_value = Collections.max(Intensity_list);
         int_max_idx = Intensity_list.indexOf(int_max_value);
         lower_half_int_list = new ArrayList<Double>(Intensity_list.subList(0, int_max_idx));
@@ -230,8 +228,8 @@ public class AFlogic {
         lower_half_int_z_list = new ArrayList<Double>(z_list.subList(0, int_max_idx));
         upper_half_int_z_list = new ArrayList<Double>(z_list.subList(int_max_idx, Intensity_list.size())); 
         
-        String current_low_int_pos = look_up_defocus(intThresh, lower_half_int_list, lower_half_int_z_list);
-        String current_high_int_pos = look_up_defocus(intThresh, upper_half_int_list, upper_half_int_z_list);       
+        String current_low_int_pos = look_up_defocus(intThresh, lower_half_int_list, lower_half_int_z_list, false);
+        String current_high_int_pos = look_up_defocus(intThresh, upper_half_int_list, upper_half_int_z_list, false);       
    
         fine_proj_max_value = Collections.max(proj_list);
         fine_proj_max_idx = proj_list.indexOf(fine_proj_max_value);

@@ -4,7 +4,7 @@ Created on Thu Aug  3 16:52:44 2023
 
 @author: Jonathan Lightley
 
-Copyright 2023 Imperial College London
+Copyright 2026 Imperial College London
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
 
@@ -37,7 +37,6 @@ import scipy.signal
 from scipy.interpolate import UnivariateSpline
 import time
 import matplotlib.pyplot as plt
-
 from datetime import datetime
 
 class autofocus():
@@ -75,9 +74,9 @@ class autofocus():
         self.Avg_BR=None
         self.Avg_BS=None
         self.background_aboveF=np.zeros((768,1024)) 
+        self.af_log_path = None
         
     def camera_setup(self):
-
         self.cam.Init()
         if self.cam.ExposureAuto.GetAccessMode() != pyspin.RW:
             print("Unable to disable automatic exposure. Aborting...")
@@ -97,11 +96,13 @@ class autofocus():
         device_serial_number = node_device_serial_number.GetValue()
         print('Starting data acquisition...')
 
-
     def camera_close(self):
         print('Stopping acquisition...')
         self.cam.DeInit()
         print('Closing first camera...')
+
+    def set_log_path(self, new_path):
+        self.af_log_path = new_path
 
     def set_background(self, reset_background):
         if reset_background==True:
@@ -130,9 +131,6 @@ class autofocus():
         print(self.background_aboveF)
         bg_image.Release()
         self.cam.EndAcquisition()
-        
-        
-        
 
     def set_noise_background(self):
         self.cam.BeginAcquisition()
@@ -155,9 +153,7 @@ class autofocus():
         bg_image_data = np.array(bg_image.GetData(), dtype="uint16").reshape( (self.image_height, self.image_width))
         self.infocus_image  = bg_image_data
         noise_bg_32 = self.noise_background.astype(np.int32)
-
-        bg_image.Release()
-        
+        bg_image.Release()      
         self.cam.EndAcquisition()
         
     def BGC_set_bg_correction_ROI(self):
@@ -166,96 +162,55 @@ class autofocus():
         x_px = self.bg_corr_mask.shape[0]
         y_px = self.bg_corr_mask.shape[1]
         x_min, x_max = int((x_px)*(edge_fraction)),int((x_px)*(1-edge_fraction))
-        y_min, y_max = int((y_px)*(edge_fraction)),int((y_px)*(1-edge_fraction))
-        
+        y_min, y_max = int((y_px)*(edge_fraction)),int((y_px)*(1-edge_fraction))       
         self.bg_corr_mask[x_min:x_max, y_min:y_max] = 1
- 
    
     def calc_std(self):
         #power_fraction,self.power_current,non_focal_power_now,ratio_NFP_FP_now,avg_int,Avg_MBI = 1,1,1,1,1,1
-        
         self.cam.BeginAcquisition()
         image_result = self.cam.GetNextImage()
         if self.image_width == 0 or self.image_height == 0:
             self.image_width = image_result.GetWidth()
             self.image_height = image_result.GetHeight()
         image_data = np.array(image_result.GetData(), dtype="uint16").reshape( (self.image_height, self.image_width))
-        image_data32 = image_data.astype(np.float32)#.astype(np.int32)
-        
+        image_data32 = image_data.astype(np.float32)#.astype(np.int32)       
         if(np.mean(self.noise_background)<0):
             print("Noise background not yet set!")
             print('\r\n')
         if(np.mean(self.infocus_image)<0):
             print("Reference image not yet set!")
             print('\r\n')
-            
         image_height,image_width=self.image_height,self.image_width
         size_height= int(1*image_height) 
         size_width=int(1*image_width) 
-       
         bg_32 = self.background.astype(np.float32) 
         bgAF_32=self.background_aboveF.astype(np.float32)
-        
-        
         noise_bg_32 = self.noise_background.astype(np.float32) 
         bg_32 = np.subtract(bg_32, noise_bg_32)
-        
-       
         image_data32 = np.subtract(image_data32, noise_bg_32)
         avg_int=np.mean(image_data32)
         image_data32 = cv2.GaussianBlur(image_data32, (41,41), cv2.BORDER_DEFAULT)
-        
-        
         image_data32_cropped = image_data32[int(image_height/2)-size_height:int(image_height/2)+size_height, int(image_width/2)-size_width:int(image_width/2)+size_width]#[int(image_height/2)-int(image_height/4):int(image_height/2)+int(image_height/4), int(image_width/2)-int(image_width/4):int(image_width/2)+int(image_width/4)]#[int(center/2)-int(center/4):int(center/2)+int(center/4), int(center/2)-int(center/4):int(center/2)+int(center/4)]
         bg_32 = bg_32[int(image_height/2)-size_height:int(image_height/2)+size_height, int(image_width/2)-size_width:int(image_width/2)+size_width]#[int(image_height/2)-int(image_height/4):int(image_height/2)+int(image_height/4), int(image_width/2)-int(image_width/4):int(image_width/2)+int(image_width/4)]#[int(center/2)-int(center/4):int(center/2)+int(center/4), int(center/2)-int(center/4):int(center/2)+int(center/4)]
-
-       
-
-
         in_focusimg_32 =  self.infocus_image.astype(np.float32)#.astype(np.int32)
         in_focusimg_32 = np.subtract(in_focusimg_32, noise_bg_32)
         in_focusimg_32 = cv2.GaussianBlur(in_focusimg_32, (41,41), cv2.BORDER_DEFAULT)
         in_focusimg_32_cropped = in_focusimg_32[int(image_height/2)-size_height:int(image_height/2)+size_height, int(image_width/2)-size_width:int(image_width/2)+size_width]#[int(image_height/2)-int(image_height/4):int(image_height/2)+int(image_height/4), int(image_width/2)-int(image_width/4):int(image_width/2)+int(image_width/4)]#[int(center/2)-int(center/4):int(center/2)+int(center/4), int(center/2)-int(center/4):int(center/2)+int(center/4)]
-       
-        
-       
-    
-    
- 
-        
-    
         in_focusimg_32 = in_focusimg_32.astype(np.int32)
-        
-     
-        
         MP0_infocus_cropped = np.mean(in_focusimg_32_cropped, axis=0) #* x_mask
         MP1_infocus_cropped = np.mean(in_focusimg_32_cropped, axis=1) #* y_mask
-        
-    
-        
         MP0_image_cropped = np.mean(image_data32_cropped, axis=0) #* x_mask
         MP1_image_cropped = np.mean(image_data32_cropped, axis=1) #* y_mask
-        
-        
         bg_MP0 = np.mean(bg_32, axis=0) 
         bg_MP1 = np.mean(bg_32, axis=1)
-        
         ratio0 = np.mean(MP0_image_cropped) / np.mean(MP0_infocus_cropped+1e-10) 
         ratio1 = np.mean(MP1_image_cropped) / np.mean(MP1_infocus_cropped+1e-10) 
-        
-       
-    
         Sbg_MP0 = bg_MP0 * ratio0
         Sbg_MP1 = bg_MP1 * ratio1
-    
         NMP0 = (MP0_image_cropped - Sbg_MP0) 
         NMP1 = (MP1_image_cropped - Sbg_MP1) 
-       
-     
         filt_proj = scipy.ndimage.uniform_filter1d(NMP0, size=10, mode='nearest')
         filt_proj1 = scipy.ndimage.uniform_filter1d(NMP1, size=50, mode='nearest')
- 
-
         sp = np.fft.fft(filt_proj)
         sp1 = np.fft.fft(filt_proj1)
         ps = np.abs(sp)**2  
@@ -303,8 +258,6 @@ class autofocus():
                     low_root1_diff = low_root1_d
                     lower_root1 = r
         ps_FWHM1 = upper_root1 - lower_root1
-  
-
         image_result.Release()
         self.cam.EndAcquisition()
         print('\r\n')
@@ -312,8 +265,4 @@ class autofocus():
 
     def main(self):
         std_send, std_send2, image_not_send, avg_int = self.calc_std()
-       
-       # with open(f"S:/2025/AF_Powers_.txt", "w") as f:
-        #    for power_frac,FP,NFP,Ratio,avg_int,AvgB_MN,AvgI_MN,AvgI_MB,timestamp in self.FP_NFP_R_L:
-         #       f.write(f"{power_frac},{FP},{NFP},{Ratio},{avg_int},{AvgB_MN},{AvgI_MN},{AvgI_MB},{timestamp}\n")
         return std_send, std_send2, avg_int

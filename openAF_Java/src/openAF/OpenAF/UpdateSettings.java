@@ -1,35 +1,18 @@
+//Copyright 2026 Imperial College London
+//Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+//1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+//
+//2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+//
+//THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+ /**
+ *
+ * @author jpelightley
+ *
+ */
+
 package openAF.OpenAF;
-
-/*
- *Copyright 2023 Imperial College London
- *Redistribution and use in source and binary forms, with or without
- *modification, are permitted provided that the following conditions are met:
- *
- *1. Redistributions of source code must retain the above copyright notice, this
- *list of conditions and the following disclaimer.
- *2. Redistributions in binary form must reproduce the above copyright notice, this 
- *list of conditions and the following disclaimer in the documentation and/or
- *other materials provided with the distribution.
- *
- *THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
- *CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES,
- *INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF 
- *MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- *DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR 
- *CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- *SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT 
- *NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
- *LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
- *CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- *STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- *ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
- *ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-
-/**
- *
- * @author Jonathan Lightley
- */
 
 import openAF.OpenAF.MainAF;
 import java.text.ParseException;
@@ -54,9 +37,9 @@ public class UpdateSettings implements Runnable{
             } 
             System.out.println(parent_.core_.isConfigDefined("System", "Startup"));
             try {
-            Thread.sleep(10000);
+                Thread.sleep(10000);
             } catch (InterruptedException ex) {
-               Logger.getLogger(UpdateSettings.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(UpdateSettings.class.getName()).log(Level.SEVERE, null, ex);
             }
         } catch (Exception ex) {
             Logger.getLogger(MainAF.class.getName()).log(Level.SEVERE, null, ex);
@@ -88,12 +71,13 @@ public class UpdateSettings implements Runnable{
                     }   
                     String lower = parent_.gui_.getAutofocusManager().getAutofocusMethod().getPropertyValue("Lower limit");
                     if(!(parent_.lowerLimit_ == NumberUtils.displayStringToDouble(lower))){
+
                         parent_.lowerLimit_ = NumberUtils.displayStringToDouble(lower);
                         parent_.setPropertyValue(parent_.Key_Lower_limit, lower);
                     } 
                 }
             } catch (MMException ex) {
-            Logger.getLogger(UpdateSettings.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(UpdateSettings.class.getName()).log(Level.SEVERE, null, ex);
             } catch (ParseException ex) {
                 Logger.getLogger(UpdateSettings.class.getName()).log(Level.SEVERE, null, ex);
             } catch (Exception ex) {

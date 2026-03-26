@@ -4,7 +4,7 @@ Created on Thu Aug  3 16:51:03 2023
 
 @author: Jonathan Lightley
 
-Copyright 2023 Imperial College London
+Copyright 2026 Imperial College London
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
 
@@ -34,6 +34,7 @@ import time
 from DefocusCalcFunctions import autofocus
 import os
 from datetime import datetime
+import fnmatch
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 af = autofocus()
 HOST = "localhost"
@@ -47,9 +48,6 @@ except socket.error as err:
 s.listen(10)
 conn, addr = s.accept()
 print("Socket Listening", addr)
-
-
-
 
 def getZposition(i):
     if (i < 41):
@@ -85,10 +83,8 @@ def socketListener():
             #print('zpos?',)
             metrics_timestamp.append([str(st),datetime.now().strftime("%H:%M:%S.%f")])
             #zlist_data = conn.recv(1024).decode(encoding='UTF-8')
-        
-             #   print('zlist_data:',zlist_data)
-            #else: pass 
-            
+            #   print('zlist_data:',zlist_data)
+            #else: pass             
         elif (msg == "background_call" +"\r\n"):
             print("msg", msg)
             back_st += 1
@@ -110,8 +106,7 @@ def socketListener():
             af.set_background_aboveF()
             stt = str(back_st)+"\r\n"
             byt = stt.encode()
-            conn.send(byt)
-            
+            conn.send(byt)           
         elif (msg == "noise_background_call" +"\r\n"):
             print("msg", msg)
             back_st += 1
@@ -126,7 +121,21 @@ def socketListener():
             stt = str(back_st)+"\r\n"
             byt = stt.encode()
             conn.send(byt)
-        elif ( msg == "deinit"+"\r\n"):
+        #elif (msg == "set_logpath" +"\r\n"):
+        # Added to remove fixed path dependency
+        elif(len(fnmatch.filter([msg], 'set_logpath*'))>0):
+            file_timestamp=datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            print("msg", msg)
+            back_st += 1
+            matched = fnmatch.filter([msg], 'set_logpath*')
+            if(matched!=[]):
+                desired_path = matched[0].replace('set_logpath','').replace('\r\n','')
+                print("Log saving to: "+desired_path)
+                af.set_log_path(desired_path)
+            stt = str(back_st)+"\r\n"
+            byt = stt.encode()
+            conn.send(byt)
+        elif (msg == "deinit"+"\r\n"):
             #print("msg", msg)
             st = getZposition(st)
             stt = str(st)+"\r\n"
@@ -140,17 +149,18 @@ def socketListener():
             byt = stt.encode()
             conn.send(byt)
             print("Message sent and not identified: " + str(st))
+            print(msg)
+            print("\r\n")
             #print("Message sent and not identified, zpos: " + str(st))
-        file_timestamp=datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        with open(f"S:/2025/AF_METRICS_.txt", "w") as f:
-            for timestamp, metrics in metrics_timestamp:
-               
-                f.write(f"{timestamp},{metrics}\n")
-            
+        if(af.af_log_path != None):
+            with open(af.af_log_path, "w") as f:
+                for timestamp, metrics in metrics_timestamp:              
+                    f.write(f"{timestamp},{metrics}\n")
+        else:
+            print("AF LOG PATH UNDEFINED!")
 socketListener()
 s.close()
 print("Socket Closed")
-
 if(False):
     while(True):                                          
         data = conn.recv(1024)
@@ -165,5 +175,4 @@ if(False):
             conn.send(byt)
             print("Message sent from Python")
         else:
-            
             print("Go away")
