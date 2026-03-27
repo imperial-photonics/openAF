@@ -101,7 +101,6 @@ public class AFclass {
     static Thread backgroundSent;
     static Thread backgroundReceive;
     
-    //String path = "C:\\Program Files\\Micro-Manager-2.0gamma\\zPosSTORM.txt";   
     String path = null;   
     File mm_dir = null;
     String OAF2_path = null;
@@ -115,12 +114,6 @@ public class AFclass {
         parent_ = parent_in;
         socket = parent_.getSocket();
         zDev = parent_.core_.getFocusDevice();
-//        String path_z_file = "S:\\2025\\"+parent_.time_prefix+"Zlist2.txt";
-//        try {
-//            Z_out = new PrintWriter(path_z_file);
-//        } catch (FileNotFoundException ex) {
-//            Logger.getLogger(AFclass.class.getName()).log(Level.SEVERE, null, ex);
-//        }
         mm_dir = parent_.get_mm_dir();
         time_prefix = DateTime.now().toString("YYYY-MM-dd_HH-mm-ss");
         OAF2_path = mm_dir.toString()+File.separator+Common_references.OAF_subfolder+File.separator+time_prefix;
