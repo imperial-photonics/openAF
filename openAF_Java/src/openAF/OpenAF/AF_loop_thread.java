@@ -111,8 +111,7 @@ public class AF_loop_thread implements Runnable{
                         if(parent_.do_single_shot){
                             System.out.println("Single Shot");
                             parent_.do_single_shot = false;
-                            //parent_.af_.goToFocus_Projections();
-                            parent_.af_.Z_out.close();
+                            parent_.af_.goToFocus_Projections();
                         }
                         if(parent_.contFocus_.equals("On")){
                             System.out.println("Cont Focus On!");
@@ -129,8 +128,14 @@ public class AF_loop_thread implements Runnable{
                         } 
                         if(parent_.Disable_.equals("On")){
                             //System.out.println("Disable Z: ON");
-                             parent_.af_.set_z_disable_status(true);
-                             //parent_.af_.Z_out.println("Z actuation disabled\n");
+                            parent_.af_.set_z_disable_status(true);
+                            //parent_.af_.Z_out.println("Z actuation disabled\n");
+                        } 
+                        if(parent_.Finalise_.equals("Now")){
+                            //System.out.println("Disable Z: ON");
+                            parent_.af_.finalise_z_list();
+                            parent_.af_.Z_out.close();
+                            //parent_.af_.Z_out.println("Z actuation disabled\n");
                         } 
                         if(parent_.Disable_.equals("Off")){
                             //System.out.println("Disable Z: OFF");

@@ -68,6 +68,7 @@ public class MainAF implements AutofocusPlugin, SciJavaPlugin{
     static final String Key_Intensity_threshold = "Intensity Threshold";
     static final String Key_Interpolation = "Interpolation on";
     static final String Key_Disable = "Disable Z";
+    static final String Key_Finialise_and_save_Zlist = "Finalise and save Z list";
     
     //These variables store current settings for the plugin
     String hardwareFocusDevice_;
@@ -87,6 +88,7 @@ public class MainAF implements AutofocusPlugin, SciJavaPlugin{
     public double Intensity_threshold = 10.0;
     public String Interpolation_ = "Off";
     public String Disable_ = "Off";
+    public String Finalise_ = "Idle";
     
     boolean socketConnected = false;
     boolean terminate = false;
@@ -135,6 +137,7 @@ public class MainAF implements AutofocusPlugin, SciJavaPlugin{
             Intensity_threshold = Double.parseDouble(IntThresh_);
             Interpolation_ = getPropertyValue(Key_Interpolation);
             Disable_ = getPropertyValue(Key_Disable);
+            Finalise_ = getPropertyValue(Key_Finialise_and_save_Zlist);
             settings_applied = true;        
         } catch (MMException ex) {
             Logger.getLogger(MainAF.class.getName()).log(Level.SEVERE, null, ex);
@@ -410,6 +413,8 @@ public class MainAF implements AutofocusPlugin, SciJavaPlugin{
         createProperty(Key_Intensity_threshold, Utils_.read_num_sensible(Double.toString(Intensity_threshold)));
         createProperty(Key_Interpolation, Interpolation_, on_or_off);
         createProperty(Key_Disable, Disable_, on_or_off);
+        String[] idle_or_now = new String[]{"Idle","Now"};
+        createProperty(Key_Finialise_and_save_Zlist, Finalise_, idle_or_now);
         loadSettings();
         try {
             setPropertyValue(Key_Offset, Utils_.read_num_sensible(Double.toString(offsetValue)));
@@ -425,6 +430,7 @@ public class MainAF implements AutofocusPlugin, SciJavaPlugin{
             setPropertyValue(Key_Intensity_threshold, Utils_.read_num_sensible(Double.toString(Intensity_threshold)));
             setPropertyValue(Key_Interpolation, "Off");
             setPropertyValue(Key_Disable, "Off");
+            setPropertyValue(Key_Finialise_and_save_Zlist, "Idle");
         } catch (MMException ex) {
             Logger.getLogger(MainAF.class.getName()).log(Level.SEVERE, null, ex);
         } catch (Exception ex) {

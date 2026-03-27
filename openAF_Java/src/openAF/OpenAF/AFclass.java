@@ -364,6 +364,15 @@ public class AFclass {
         parent_.gui_.getAutofocusManager().refresh();
     }
     
+    public void finalise_z_list(){
+        String LOCAL_Key_Finialise_and_save_Zlist = "Finalise and save Z list";
+        try {
+            parent_.setPropertyValue(LOCAL_Key_Finialise_and_save_Zlist,"Idle");
+        } catch (MMException ex) {
+            Logger.getLogger(AFclass.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    
     public void noise_background(boolean dia){
         double af1 = 0;
         synchronized(parent_.control_){
