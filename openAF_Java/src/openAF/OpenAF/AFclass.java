@@ -31,8 +31,10 @@ import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import mmcorej.CMMCore;
+import static org.apache.commons.lang.math.NumberUtils.min;
 import org.jfree.ui.RefineryUtilities;
 import org.joda.time.DateTime;
+import org.micromanager.internal.utils.MMException;
 
 public class AFclass {
     AFlogic aflog_ = new AFlogic();
@@ -265,6 +267,7 @@ public class AFclass {
     }
     
     public void calib(boolean dia){
+        double running_metric_min = 9999999;
         reList.clear();
         afList.clear();
         afList2.clear();
@@ -318,6 +321,7 @@ public class AFclass {
                     af1 = Double.parseDouble(parent_.control_.pyZ);
                     af2 = Double.parseDouble(parent_.control_.pyZ2);
                     af3 = Double.parseDouble(parent_.control_.avgInt);
+                    running_metric_min = min(new double[]{af1,af2,af3});
                     co=false;
                 }
             }
@@ -355,6 +359,16 @@ public class AFclass {
         } catch (Exception ex) {
             Logger.getLogger(AFclass.class.getName()).log(Level.SEVERE, null, ex);
         }
+        //Added to try and prevent accidental use with too high a metric threshold
+        parent_.Rad_threshold = running_metric_min;
+        String LOCAL_Key_Threshold = "FWHM Threshold";
+        try {
+            parent_.setPropertyValue(LOCAL_Key_Threshold,Double.toString(parent_.Rad_threshold));
+        } catch (MMException ex) {
+            Logger.getLogger(AFclass.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        //Need to update UI! (may need to close graphs first)
+        parent_.gui_.getAutofocusManager().refresh();
     }
     
     public void noise_background(boolean dia){
@@ -648,7 +662,6 @@ public class AFclass {
                         String text = disabled + "," + timestamp.toString() +"," + String.valueOf(defocus) + "," + String.valueOf(current_z); 
                         Z_out.println(text);
                         try {
-                            Z_out.println("AF threshold is set higher than values being reported from the AF unit! Motion disabled");
                             if(!disable_bool){
                                 System.out.println("Z active!!!!");
                                 parent_.core_.setPosition(zDev, current_z);
@@ -659,6 +672,7 @@ public class AFclass {
                         }
                         focusing =false;
                     } else {
+                        Z_out.println("AF threshold is set higher than values being reported from the AF unit! Motion disabled");
                         try {
                             if(!disable_bool){       
                                 parent_.core_.setPosition(zDev, defined_focus);
