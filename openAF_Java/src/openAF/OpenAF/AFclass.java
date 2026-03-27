@@ -1,4 +1,4 @@
-//Copyright 2023 Imperial College London
+//Copyright 2026 Imperial College London
 //Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 //1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
 //
@@ -648,6 +648,7 @@ public class AFclass {
                         String text = disabled + "," + timestamp.toString() +"," + String.valueOf(defocus) + "," + String.valueOf(current_z); 
                         Z_out.println(text);
                         try {
+                            Z_out.println("AF threshold is set higher than values being reported from the AF unit! Motion disabled");
                             if(!disable_bool){
                                 System.out.println("Z active!!!!");
                                 parent_.core_.setPosition(zDev, current_z);

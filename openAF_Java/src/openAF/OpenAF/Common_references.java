@@ -12,5 +12,5 @@ package openAF.OpenAF;
  */
 public class Common_references {
     static final String OAF_subfolder = "openAF";
-    static final String Z_logfile_name = "Zlist2";
+    static final String Z_logfile_name = "Zlist2.txt";
 }
