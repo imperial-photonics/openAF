@@ -120,17 +120,25 @@ public class AFclass {
 //            Logger.getLogger(AFclass.class.getName()).log(Level.SEVERE, null, ex);
 //        }
         mm_dir = parent_.get_mm_dir();
-        OAF2_path = mm_dir.toString()+File.separator+Common_references.OAF2_subfolder;
-        path = mm_dir.toString()+"zPosSTORM.txt";
-        time_prefix = DateTime.now().toString("YYYY-MM-dd_HH-mm-ss_");
+        time_prefix = DateTime.now().toString("YYYY-MM-dd_HH-mm-ss");
+        OAF2_path = mm_dir.toString()+File.separator+Common_references.OAF_subfolder+File.separator+time_prefix;
+        //path = mm_dir.toString()+"zPosSTORM.txt";
         try {
             Files.createDirectories(Paths.get(OAF2_path));
-            String path_z_file = OAF2_path+File.separator+Common_references.Z_logfile_name;
+            String path_z_file = OAF2_path+File.separator+time_prefix+"_"+Common_references.Z_logfile_name;
             Z_out = new PrintWriter(path_z_file);
         } catch (IOException ex) {
             Logger.getLogger(AFclass.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
+    
+    public void set_interp_status(boolean status_to_set){
+        interp_bool = status_to_set;
+    }
+    
+    public boolean get_interp_status(boolean status_to_set){
+        return interp_bool;
+    }    
     
     public void set_z_disable_status(boolean status_to_set){
         disable_bool = status_to_set;

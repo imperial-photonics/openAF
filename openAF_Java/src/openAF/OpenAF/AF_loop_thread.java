@@ -108,10 +108,10 @@ public class AF_loop_thread implements Runnable{
                             parent_.setPropertyValue("Define Focus", "Off"); 
                             parent_.af_.defineAFFocus_Proj();
                         }
-                         if(parent_.do_single_shot){
+                        if(parent_.do_single_shot){
                             System.out.println("Single Shot");
                             parent_.do_single_shot = false;
-                            parent_.af_.goToFocus_Projections();
+                            //parent_.af_.goToFocus_Projections();
                             parent_.af_.Z_out.close();
                         }
                         if(parent_.contFocus_.equals("On")){
@@ -121,11 +121,11 @@ public class AF_loop_thread implements Runnable{
                         } 
                         if(parent_.Interpolation_.equals("On")){
                             //System.out.println("Interpolation: ON");
-                            parent_.af_.interp_bool = true;
+                            parent_.af_.set_interp_status(true);//##REPLACED DIRECT ACCESS
                         } 
                         if(parent_.Interpolation_.equals("Off")){
                             //System.out.println("Interpolation: OFF");
-                            parent_.af_.interp_bool = false;
+                            parent_.af_.set_interp_status(false);
                         } 
                         if(parent_.Disable_.equals("On")){
                             //System.out.println("Disable Z: ON");
