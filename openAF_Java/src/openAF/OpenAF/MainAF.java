@@ -1,40 +1,23 @@
+//Copyright 2026 Imperial College London
+//Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+//1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+//
+//2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+//
+//THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+ /**
+ *
+ * @author jpelightley
+ *
+ */
+
 package openAF.OpenAF;
 
-/*
- *Copyright 2023 Imperial College London
- *Redistribution and use in source and binary forms, with or without
- *modification, are permitted provided that the following conditions are met:
- *
- *1. Redistributions of source code must retain the above copyright notice, this
- *list of conditions and the following disclaimer.
- *2. Redistributions in binary form must reproduce the above copyright notice, this 
- *list of conditions and the following disclaimer in the documentation and/or
- *other materials provided with the distribution.
- *
- *THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
- *CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES,
- *INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF 
- *MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- *DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR 
- *CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- *SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT 
- *NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
- *LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
- *CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- *STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- *ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
- *ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-
-/**
- *
- * @author Jonathan Lightley
- */
-
 import openAF.OpenAF.DefineFocus;
-import openAF.OpenAF.ContinuousFocus;
 import bsh.ParseException;
 import ij.process.ImageProcessor;
+import java.awt.Rectangle;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -44,6 +27,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JOptionPane;
 import mmcorej.CMMCore;
+import org.joda.time.DateTime;
 import org.micromanager.AutofocusPlugin;
 import org.micromanager.Studio;
 import org.micromanager.UserProfile;
@@ -54,6 +38,11 @@ import org.micromanager.internal.utils.NumberUtils;
 import org.micromanager.internal.utils.PropertyItem;
 import org.micromanager.internal.utils.PropertyTableData;
 import org.micromanager.internal.utils.PropertyValueCellEditor;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import java.io.File;
+import static java.lang.reflect.Modifier.TRANSIENT;
+
 import org.scijava.plugin.Plugin;
 import org.scijava.plugin.SciJavaPlugin;
 
@@ -72,11 +61,14 @@ public class MainAF implements AutofocusPlugin, SciJavaPlugin{
     static final String Key_Continuous_enabled = "Continuous Focus";
     static final String Key_Define_Focus = "Define Focus";
     static final String Key_Calibration = "Calibration";
-    static final String Key_Range = "Range";
+    static final String Key_Range = "Half Range";
     static final String Key_Step_Size = "Step Size";
-    static final String Key_Set_noise_background = "Noise Background";
-    static final String Key_Threshold = "Threshold";
+    static final String Key_Set_noise_background = "Ref/Background Imgs";
+    static final String Key_Threshold = "FWHM Threshold";
     static final String Key_Intensity_threshold = "Intensity Threshold";
+    static final String Key_Interpolation = "Interpolation on";
+    static final String Key_Disable = "Disable Z";
+    static final String Key_Finialise_and_save_Zlist = "Finalise and save Z list";
     
     //These variables store current settings for the plugin
     String hardwareFocusDevice_;
@@ -89,29 +81,35 @@ public class MainAF implements AutofocusPlugin, SciJavaPlugin{
     public String defineFocus_ = "Off";
     public String calib_ = "Off";
     public String noiseBg_ = "Off";
-    public double range_ = 50; //um
-    public double stepSize_ = 0.2; //um
+    public double range_ = 1; //um
+    public double stepSize_ = 2; //um
     public double zpos = lastFocusValue;
-    public double FWHM_threshold = 1.30;
+    public double Rad_threshold = 1.30;
     public double Intensity_threshold = 10.0;
+    public String Interpolation_ = "Off";
+    public String Disable_ = "Off";
+    public String Finalise_ = "Idle";
     
     boolean socketConnected = false;
-    
     boolean terminate = false;
     boolean do_continuous = false;
     boolean do_single_shot = false;
     boolean do_calibration = false;
-    
     boolean initialised = false;
     boolean settings_applied = false;
+    
+    public String time_prefix = null;
     
     String zDev = null;
     private static final String AF_DEVICE_NAME = "OpenAF";
     Socket socket = null;
     
+    File ijroot = new File(ij.IJ.getDirectory("imagej"));
     Utilities.utils2 Utils_ = null;
+
     
     public void loadSettings() {
+        time_prefix = DateTime.now().toString("YYYY-MM-dd_HH-mm-ss_");
         UserProfile profile = MMStudio.getInstance().profile();
         for (int i=0; i<properties_.size(); i++) {
            properties_.get(i).value = profile.getSettings(this.getClass()).getString(properties_.get(i).name, properties_.get(i).value);
@@ -121,8 +119,8 @@ public class MainAF implements AutofocusPlugin, SciJavaPlugin{
     @Override
     public void applySettings() {
         try {
-            String upper_ = Utils_.read_num_sensible(getPropertyValue(Key_Upper_limit));
-            upperLimit_ = Double.parseDouble(upper_);
+            String uppe_ = Utils_.read_num_sensible(getPropertyValue(Key_Upper_limit));
+            upperLimit_ = Double.parseDouble(uppe_);
             String low_ = Utils_.read_num_sensible(getPropertyValue(Key_Lower_limit));
             lowerLimit_ = Double.parseDouble(low_);            
             contFocus_ = getPropertyValue(Key_Continuous_enabled);
@@ -134,12 +132,15 @@ public class MainAF implements AutofocusPlugin, SciJavaPlugin{
             stepSize_ = Double.parseDouble(stepsiz_);            
             noiseBg_ = getPropertyValue(Key_Set_noise_background);
             String thresh_ = Utils_.read_num_sensible(getPropertyValue(Key_Threshold));
-            FWHM_threshold = Double.parseDouble(thresh_);
+            Rad_threshold = Double.parseDouble(thresh_);
             String IntThresh_ = Utils_.read_num_sensible(getPropertyValue(Key_Intensity_threshold));
             Intensity_threshold = Double.parseDouble(IntThresh_);
+            Interpolation_ = getPropertyValue(Key_Interpolation);
+            Disable_ = getPropertyValue(Key_Disable);
+            Finalise_ = getPropertyValue(Key_Finialise_and_save_Zlist);
             settings_applied = true;        
         } catch (MMException ex) {
-              Logger.getLogger(MainAF.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(MainAF.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
@@ -149,12 +150,14 @@ public class MainAF implements AutofocusPlugin, SciJavaPlugin{
         for (int i=0; i<properties_.size(); i++) {
             profile.getSettings(this.getClass()).putString(properties_.get(i).name, properties_.get(i).value);
         }      
-    }  
+    }
+    
 
     @Override
     public double fullFocus() throws Exception {
         do_single_shot = true;
-        return(1000.1234);//Unique value (not used outside testing)
+
+        return(1000.1234);
     }
 
     @Override
@@ -164,7 +167,7 @@ public class MainAF implements AutofocusPlugin, SciJavaPlugin{
 
     @Override
     public int getNumberOfImages() {
-        return 1;// Always 1
+        return 1;
     }
 
     @Override
@@ -174,11 +177,13 @@ public class MainAF implements AutofocusPlugin, SciJavaPlugin{
 
     @Override
     public PropertyItem[] getProperties() {
+
         return properties_.toArray(new PropertyItem[properties_.size()]);
     }
 
     @Override
     public String[] getPropertyNames() {
+
         String[] propName = new String[properties_.size()];
         for (int i=0; i<properties_.size(); i++) {
             propName[i] = properties_.get(i).name;
@@ -188,6 +193,7 @@ public class MainAF implements AutofocusPlugin, SciJavaPlugin{
 
     @Override
     public PropertyItem getProperty(String name) throws Exception {
+
         for (int i=0; i<properties_.size(); i++) {
             if (name.equals(properties_.get(i).name)) {
                return properties_.get(i);
@@ -235,16 +241,10 @@ public class MainAF implements AutofocusPlugin, SciJavaPlugin{
 
     @Override
     public void enableContinuousFocus(boolean bln) throws Exception {
-        if(bln){
-            setPropertyValue("Continuous Focus", "On");
-            contFocus_ = gui_.getAutofocusManager().getAutofocusMethod().getPropertyValue("Continuous Focus");
-        }
-        else if(!bln){
-            setPropertyValue("Continuous Focus", "Off");
-            contFocus_ = gui_.getAutofocusManager().getAutofocusMethod().getPropertyValue("Continuous Focus");
-        }
+        //contFocus_ = "On";
+        setPropertyValue("Continuous Focus", "On");
     }
-    
+
     @Override
     public boolean isContinuousFocusEnabled() throws Exception {
         String value = gui_.getAutofocusManager().getAutofocusMethod().getPropertyValue("Continuous Focus");
@@ -272,6 +272,7 @@ public class MainAF implements AutofocusPlugin, SciJavaPlugin{
     
     public void setSocket(Socket s){
         socket = s;
+        //control_.setSocket(s);
     }
     
     public Socket getSocket(){
@@ -285,7 +286,7 @@ public class MainAF implements AutofocusPlugin, SciJavaPlugin{
 
     @Override
     public double computeScore(ImageProcessor ip) {
-        return 666; //Unique value - not used
+        return 666;
     }
 
     public void getZdev(){
@@ -298,7 +299,7 @@ public class MainAF implements AutofocusPlugin, SciJavaPlugin{
             gui_ = studio;
             initialize();
             initialised = true;
-        } else {   
+        } else {
         }
     }
 
@@ -333,17 +334,17 @@ public class MainAF implements AutofocusPlugin, SciJavaPlugin{
 
     @Override
     public String getHelpText() {
-        return("Please check https://www.github.com/ImperialCollegeLondon/openAF for help");
+        return("Please see https://github.com/ImperialCollegeLondon/openAF for help");
     }
 
     @Override
     public String getVersion() {
-        return("1.0.0");
+        return("1.1.0");
     }
 
     @Override
     public String getCopyright() {
-        return("(c) Imperial College London [2023]");
+        return("(c) Imperial College London [2026]");
     }
 
     public boolean get_AF_not_dead() {
@@ -390,41 +391,7 @@ public class MainAF implements AutofocusPlugin, SciJavaPlugin{
     public double get_offset(){
         return offsetValue;
     }
-
-    public void initSocket(){
-        System.out.println("suofsuofgo");
-        boolean SocketConnect = false;
-        String message = "Do you want to try to connect to Socket?";
-        int n = JOptionPane.showConfirmDialog(null, message, "Information:",JOptionPane.YES_NO_OPTION);
-        if (n == JOptionPane.YES_OPTION) {
-            SocketConnect = true;                    
-        }
-
-        if(SocketConnect){
-            while(SocketConnect){
-                try {
-                    socket = new Socket("localhost",9999);
-                    SocketConnect = false;
-                    JOptionPane.showMessageDialog(null, "Socket Connected!");
-                    socketConnected = true;
-                } catch (UnknownHostException e1) {
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException ex) {
-                    }
-                } catch (IOException e1) {
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException ex) {
-                    }
-                }
-            }
-        }
-        if(socket == null){
-            System.out.println("Socket is null.");
-        }
-    }
-    
+   
     @Override
     public void initialize() {
         core_ = gui_.getCMMCore();
@@ -434,16 +401,20 @@ public class MainAF implements AutofocusPlugin, SciJavaPlugin{
         createProperty(Key_Offset, Utils_.read_num_sensible(Double.toString(offsetValue)));
         createProperty(Key_Upper_limit, Utils_.read_num_sensible(Double.toString(upperLimit_)));
         createProperty(Key_Lower_limit, Utils_.read_num_sensible(Double.toString(lowerLimit_)));
-        String[] blah = new String[]{"Off","On"};
-        createProperty(Key_Continuous_enabled, contFocus_, blah);
-        createProperty(Key_Define_Focus, defineFocus_, blah);
-        createProperty(Key_Calibration, calib_, blah);
+        String[] on_or_off = new String[]{"Off","On"};
+        createProperty(Key_Continuous_enabled, contFocus_, on_or_off);
+        createProperty(Key_Define_Focus, defineFocus_, on_or_off);
+        createProperty(Key_Calibration, calib_, on_or_off);
         createProperty(Key_Range,Utils_.read_num_sensible(Double.toString(range_)));
         createProperty(Key_Step_Size,Utils_.read_num_sensible(Double.toString(stepSize_)));
-        String[] noises = new String[]{"Off","Set noise BG", "Set BG"};
+        String[] noises = new String[]{"Off","Set noise BG", "Set BG","Set BG AF", "Set Infocus"};
         createProperty(Key_Set_noise_background, noiseBg_, noises);
-        createProperty(Key_Threshold, Utils_.read_num_sensible(Double.toString(FWHM_threshold)));
+        createProperty(Key_Threshold, Utils_.read_num_sensible(Double.toString(Rad_threshold)));
         createProperty(Key_Intensity_threshold, Utils_.read_num_sensible(Double.toString(Intensity_threshold)));
+        createProperty(Key_Interpolation, Interpolation_, on_or_off);
+        createProperty(Key_Disable, Disable_, on_or_off);
+        String[] idle_or_now = new String[]{"Idle","Now"};
+        createProperty(Key_Finialise_and_save_Zlist, Finalise_, idle_or_now);
         loadSettings();
         try {
             setPropertyValue(Key_Offset, Utils_.read_num_sensible(Double.toString(offsetValue)));
@@ -455,8 +426,11 @@ public class MainAF implements AutofocusPlugin, SciJavaPlugin{
             setPropertyValue(Key_Range,Utils_.read_num_sensible(Double.toString(range_)));
             setPropertyValue(Key_Step_Size, Utils_.read_num_sensible(Double.toString(stepSize_)));
             setPropertyValue(Key_Set_noise_background, "Off");
-            setPropertyValue(Key_Threshold, Utils_.read_num_sensible(Double.toString(FWHM_threshold)));
+            setPropertyValue(Key_Threshold, Utils_.read_num_sensible(Double.toString(Rad_threshold)));
             setPropertyValue(Key_Intensity_threshold, Utils_.read_num_sensible(Double.toString(Intensity_threshold)));
+            setPropertyValue(Key_Interpolation, "Off");
+            setPropertyValue(Key_Disable, "Off");
+            setPropertyValue(Key_Finialise_and_save_Zlist, "Idle");
         } catch (MMException ex) {
             Logger.getLogger(MainAF.class.getName()).log(Level.SEVERE, null, ex);
         } catch (Exception ex) {
@@ -466,6 +440,10 @@ public class MainAF implements AutofocusPlugin, SciJavaPlugin{
         Thread AF_BG_thread = new Thread(new AF_loop_thread(this));
         AF_BG_thread.start();
         initialised = true; 
+    }
+
+    public File get_mm_dir(){
+        return ijroot;
     }
     
     public String setZDev(){

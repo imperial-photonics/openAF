@@ -1,46 +1,27 @@
+//Copyright 2026 Imperial College London
+//Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+//1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+//
+//2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+//
+//THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+ /**
+ *
+ * @author jpelightley
+ *
+ */
+    
 package openAF.OpenAF;
-
-/*
- *Copyright 2023 Imperial College London
- *Redistribution and use in source and binary forms, with or without
- *modification, are permitted provided that the following conditions are met:
- *
- *1. Redistributions of source code must retain the above copyright notice, this
- *list of conditions and the following disclaimer.
- *2. Redistributions in binary form must reproduce the above copyright notice, this 
- *list of conditions and the following disclaimer in the documentation and/or
- *other materials provided with the distribution.
- *
- *THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
- *CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES,
- *INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF 
- *MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- *DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR 
- *CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- *SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT 
- *NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
- *LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
- *CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- *STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- *ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
- *ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-
-/**
- *
- * @author Jonathan Lightley
- */
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import openAF.OpenAF.AF_measurement;
+
 import java.awt.Toolkit;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
 import java.util.Set;
 import javax.swing.JDialog;
@@ -50,6 +31,7 @@ import org.micromanager.internal.utils.MMException;
 public class AF_loop_thread implements Runnable{
     boolean OpenAF_not_dead = true;
     MainAF parent_ = null;
+    //Control control_;
     private static final String SET_NEW_OFFSET = "Set new offset";
     private static final String SET_REF = "Set reference";
     String action = SET_REF;
@@ -71,7 +53,9 @@ public class AF_loop_thread implements Runnable{
     
     AF_loop_thread(MainAF parent_in){
         parent_ = parent_in;
-        socket = null;      
+        socket = null;
+
+       
     }
     
     @Override
@@ -86,7 +70,9 @@ public class AF_loop_thread implements Runnable{
         parent_.control_.backgroundReceive.start();  
         if(parent_.initialised){
             parent_.af_ = new AFclass(parent_);
-        }
+        }    
+        // Added to remove fixed path dependency
+        parent_.af_.setpath_signal(false);
         while(true){
             if(parent_.initialised){
                 parent_.settings_applied = false;
@@ -96,38 +82,68 @@ public class AF_loop_thread implements Runnable{
                         if(!parent_.noiseBg_.equals("Off")){
                             if(parent_.noiseBg_.equals("Set noise BG")){
                                 System.out.println("Set noise BG");                            
-                                parent_.setPropertyValue("Noise Background", "Off");
+                                parent_.setPropertyValue("Ref/Background Imgs", "Off");
                                 parent_.af_.noise_background(false);
-                            }
-                            else if(parent_.noiseBg_.equals("Set BG")){
+                            } else if(parent_.noiseBg_.equals("Set BG")){
                                 System.out.println("Set BG");
-                                parent_.setPropertyValue("Noise Background", "Off");
+                                parent_.setPropertyValue("Ref/Background Imgs", "Off");
                                 parent_.af_.background(false);
+                            } else if(parent_.noiseBg_.equals("Set BG AF")){
+                                System.out.println("Set BG AF");
+                                parent_.setPropertyValue("Ref/Background Imgs", "Off");
+                                parent_.af_.background_aboveF(false);
+                            } else if(parent_.noiseBg_.equals("Set Infocus")){
+                                System.out.println("Set Infocus");
+                                parent_.setPropertyValue("Ref/Background Imgs", "Off");
+                                parent_.af_.infocus_signal(false);
                             }
                         }
-                        else if(parent_.calib_.equals("On")){
+                        if(parent_.calib_.equals("On")){
                             System.out.println("Calibration");
                             parent_.setPropertyValue("Calibration", "Off");
                             parent_.af_.calib(true);
                         }
-                        else if(parent_.defineFocus_.equals("On")){
+                        if(parent_.defineFocus_.equals("On")){
                             System.out.println("Define Focus");
                             parent_.setPropertyValue("Define Focus", "Off"); 
                             parent_.af_.defineAFFocus_Proj();
                         }
-                        else if(parent_.do_single_shot){
+                        if(parent_.do_single_shot){
                             System.out.println("Single Shot");
                             parent_.do_single_shot = false;
                             parent_.af_.goToFocus_Projections();
                         }
-                        else if(parent_.contFocus_.equals("On")){
+                        if(parent_.contFocus_.equals("On")){
                             System.out.println("Cont Focus On!");
-                            parent_.af_.goToFocus_Projections();
-                        } else {
-                            //Not needed
+                            parent_.af_.goToFocus_Projections();                       
+                            //measure();
+                        } 
+                        if(parent_.Interpolation_.equals("On")){
+                            //System.out.println("Interpolation: ON");
+                            parent_.af_.set_interp_status(true);//##REPLACED DIRECT ACCESS
+                        } 
+                        if(parent_.Interpolation_.equals("Off")){
+                            //System.out.println("Interpolation: OFF");
+                            parent_.af_.set_interp_status(false);
+                        } 
+                        if(parent_.Disable_.equals("On")){
+                            //System.out.println("Disable Z: ON");
+                            parent_.af_.set_z_disable_status(true);
+                            //parent_.af_.Z_out.println("Z actuation disabled\n");
+                        } 
+                        if(parent_.Finalise_.equals("Now")){
+                            //System.out.println("Disable Z: ON");
+                            parent_.af_.finalise_z_list();
+                            parent_.af_.Z_out.close();
+                            //parent_.af_.Z_out.println("Z actuation disabled\n");
+                        } 
+                        if(parent_.Disable_.equals("Off")){
+                            //System.out.println("Disable Z: OFF");
+                            //parent_.af_.Z_out.println("Z actuation enabled\n");
+                            parent_.af_.set_z_disable_status(false);
                         }
                     } catch (MMException ex) {
-                    Logger.getLogger(AF_loop_thread.class.getName()).log(Level.SEVERE, null, ex);
+                        Logger.getLogger(AF_loop_thread.class.getName()).log(Level.SEVERE, null, ex);
                     }
                 }
             }
@@ -138,7 +154,7 @@ public class AF_loop_thread implements Runnable{
  
     private void do_AF_stuff() throws InterruptedException {
         if(parent_.get_do_single_shot()){
-            loud_beep("TEST BEEP");//Helps alert user that AF succeeded in single shot
+            loud_beep("TEST BEEP");
             parent_.set_do_single_shot(false);
         }
         if(parent_.get_do_continuous()){
@@ -160,24 +176,24 @@ public class AF_loop_thread implements Runnable{
         double home_pos = 9550.00;
         while(focusing){
             String current_pos;
-            String val_tmp = "0";
+            String hh = "0";
             synchronized(parent_.control_){
                 parent_.control_.set_flagRead(true);
                 parent_.control_.set_flagSent(true);
-                boolean Control_bool = true;
-                while(Control_bool){
+                boolean cc = true;
+                while(cc){
                     if(parent_.control_.flagRead()){
-                        val_tmp = parent_.control_.pyZ();
-                        Control_bool = false;
+                        hh = parent_.control_.pyZ();
+                        cc = false;
                         parent_.control_.set_flagRead(false);
                     }
                 }
             }
-            boolean Ctrl_bool = true;
-            while(Ctrl_bool){
-                if(val_tmp!=parent_.control_.pyZ()){
+            boolean co = true;
+            while(co){
+                if(hh!=parent_.control_.pyZ()){
                     AF_value = Double.parseDouble(parent_.control_.pyZ());
-                    Ctrl_bool=false;
+                    co=false;
                 }
             }
             AF_value = Double.parseDouble(parent_.control_.pyZ());
@@ -193,9 +209,9 @@ public class AF_loop_thread implements Runnable{
         }
     }
 
-    private void loud_beep(String msg) {
+    private void loud_beep(String title) {
         Toolkit.getDefaultToolkit().beep();
-        String title = "OpenAF";
+        String msg = "Continuous AF ran into an issue and disabled itself";
         JDialog dialog = nonblock_dialogue(msg,title);
         dialog.setVisible(true);        
     }
@@ -209,7 +225,7 @@ public class AF_loop_thread implements Runnable{
     }    
     
     public void initSocket(){
-        System.out.println("Iniating socket");
+        System.out.println("suofsuofgo");
         boolean SocketConnect = false;
         String message = "Do you want to try to connect to Socket?";
         int n = JOptionPane.showConfirmDialog(null, message, "Information:",JOptionPane.YES_NO_OPTION);
@@ -226,20 +242,22 @@ public class AF_loop_thread implements Runnable{
                 } catch (UnknownHostException e1) {
                     try {
                         Thread.sleep(1000);
+                        //e1.printStackTrace();
                     } catch (InterruptedException ex) {
-                        //no action useful
+                        //Logger.getLogger(MainAF.class.getName()).log(Level.SEVERE, null, ex);
                     }
                 } catch (IOException e1) {
                     try {
                         Thread.sleep(1000);
+                        //e1.printStackTrace();
                     } catch (InterruptedException ex) {
-                        //no action useful
+                        //Logger.getLogger(MainAF.class.getName()).log(Level.SEVERE, null, ex);
                     }
                 }
             }
         }
         if(socket == null){
-            System.out.println("Socket is null.");
+            System.out.println("Socket not connected.");
         }
     }
     
