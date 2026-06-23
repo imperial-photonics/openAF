@@ -84,8 +84,8 @@ public class MainAF implements AutofocusPlugin, SciJavaPlugin{
     public double range_ = 1; //um
     public double stepSize_ = 2; //um
     public double zpos = lastFocusValue;
-    public double Rad_threshold = 1.30;
-    public double Intensity_threshold = 10.0;
+    public double Rad_threshold = 0.9;
+    public double Intensity_threshold = 1.0;
     public String Interpolation_ = "Off";
     public String Disable_ = "Off";
     public String Finalise_ = "Idle";

@@ -640,7 +640,7 @@ public class AFclass {
                             lookuplist_z = aflog_.lower_half_fine_z_list;
                         }
                         String Focus_pos = aflog_.look_up_defocus(afFoc, lookuplist_rad,lookuplist_z,interp_bool);
-                        double defocus = (Math.round(100*((Double.parseDouble(Focus_pos) - (Double.parseDouble(current_pos))))))/100.0;
+                        double defocus = (Math.round(1000*((Double.parseDouble(Focus_pos) - (Double.parseDouble(current_pos))))))/1000.0;
                         System.out.println("defocus = " + defocus);
                         try {
                             current_z = parent_.core_.getPosition(zDev);
